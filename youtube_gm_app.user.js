@@ -18,9 +18,11 @@ if(unsafeWindow.parent==unsafeWindow){
 }
 
 function popular(){
+  search_text = "";
   view_movies(YOUTUBE_API+"/standardfeeds/most_viewed?time=today");
 }
 function recent(){
+  search_text = "";
   view_movies(YOUTUBE_API+"/standardfeeds/most_recent");
 }
 
@@ -31,7 +33,7 @@ function view_movies(url){
   )(
     $C.error(
       function(e){
-        console.log(e);
+        // console.log(e);
         return [];
       }
     )
@@ -50,8 +52,6 @@ function view_thumbnails(movies){
   ($option({value:"select",textContent:"select"})(),
    $option({value:"popular",textContent:"popular today"})(),
    $option({value:"recent",textContent:"recent"})());
-
-    console.log("hoge");
 
   $(select).change(function(){
                      if(select.value == "popular"){
@@ -109,11 +109,14 @@ function view_thumbnails(movies){
                                  // cssFloat:"left"
                                 })
                         (
-                          $div({textContent:movie.title+" [" + movie.duration + " sec]"},
+                          $div({textContent:movie.title},
                                {textAlign:"left",
                                 padding:"5px 2px 2px",
                                 margin:"0",
-                                fontSize:"12px"})(),
+                                fontSize:"12px"})(
+                            $span({},{color:"#C66",fontSize:"10px"})(" [" + movie.duration + " sec]"),
+                            $span({},{color:"#66C",fontSize:"10px"})(" published:" + movie.published)
+                          ),
                           $div({},{textAlign:"center"})(make_thumbs(movie))));
                  });
   window.scrollTo(0,0);
@@ -211,7 +214,7 @@ function parse_youtube_feed(text){
   try{
     movies.title = doc.getElementsByTagName("title")[0].textContent;
   }catch(e){
-    console.log(e);
+    // console.log(e);
   }
   return movies;
 }
