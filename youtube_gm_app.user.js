@@ -70,13 +70,13 @@ if(unsafeWindow.parent==unsafeWindow){
                        $(body).height($(window).height()-30);
                      }
                    });
-  Keybind.add("j",
+  Keybind.add("j down".split(" "),
               function(){
                 if(body && current){
                   set_current($(current).next("div").get(0));
                 }
               });
-  Keybind.add("k",
+  Keybind.add("k up".split(" "),
               function(){
                 if(body && current){
                   set_current($(current).prev("div").get(0));
