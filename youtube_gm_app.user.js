@@ -217,7 +217,12 @@ function make_ui(){
 function view_thumbnails(data){
   var feed = data.feed;
   if(body){
-    $(body).hide("slow", function(){$(body).remove(); body = null;setTimeout(function(){view_thumbnails(data);},0);});
+    $(body).hide("slow",
+                 function(){
+                   $(body).remove();
+                   body = null;
+                   setTimeout(function(){view_thumbnails(data);},0);
+                 });
     return;
   }
   try{
@@ -225,7 +230,7 @@ function view_thumbnails(data){
   }catch(e){
     log(uneval(e));
   }
-  $add(body, $div({textContent:feed.title.$t})());
+  $add(body, $h3({textContent:feed.title.$t},{fontSize:"12px",border:"none",margin:"0",padding:"0"})());
 
 
   var div = null;
@@ -256,7 +261,7 @@ function view_thumbnails(data){
                        $add(body,div);
                      });
   $add(div,$div({},{height:"500px"})());
-  current = $(body).children("div").get(1);
+  current = $(body).children("div").get(0);
   set_current(current);
 
   function get_content(entry){
