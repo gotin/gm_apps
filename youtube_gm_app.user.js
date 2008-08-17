@@ -233,7 +233,6 @@ function view_thumbnails(data){
   $add(body, $h3({textContent:feed.title.$t},{fontSize:"12px",border:"none",margin:"0",padding:"0"})());
 
 
-  var div = null;
   feed.entry.forEach(function(entry){
                        var rating = entry.gd$rating;
                        rating = (rating && (rating.average + " / " + rating.numRaters)) ||"not yet";
@@ -242,25 +241,25 @@ function view_thumbnails(data){
                                 count + "view" + (count == 1 ? "":"s")
                                );
 
-                       div = $div({},{backgroundColor:"#333",
-                                      margin:"2px 0",
-                                      width:"500px"//,
-                                      // cssFloat:"left"
+                       $add(body,
+                            $div({},{backgroundColor:"#333",
+                                     margin:"2px 0",
+                                     width:"500px"//,
+                                     // cssFloat:"left"
                                     })(
-                         $div({textContent:entry.title.$t},
-                              {textAlign:"left",
-                               padding:"5px 2px 2px",
-                               margin:"0",
-                               fontSize:"12px"})(
-                           $span({},{color:"#C66",fontSize:"10px"})(" [" + entry.media$group.yt$duration.seconds + " sec]"),
-                           $span({},{color:"#6C6",fontSize:"10px"})(" [" + count + "]"),
-                           $span({},{color:"#6CC",fontSize:"10px"})(" [rate: " + rating + " ]"),
-                           $span({},{color:"#66C",fontSize:"10px"})(" [published: " + entry.published.$t + " ]")
-                         ),
-                         $div({},{textAlign:"center"})(make_thumbs(entry)));
-                       $add(body,div);
+                              $div({textContent:entry.title.$t},
+                                   {textAlign:"left",
+                                    padding:"5px 2px 2px",
+                                    margin:"0",
+                                    fontSize:"12px"})(
+                                $span({},{color:"#C66",fontSize:"10px"})(" [" + entry.media$group.yt$duration.seconds + " sec]"),
+                                $span({},{color:"#6C6",fontSize:"10px"})(" [" + count + "]"),
+                                $span({},{color:"#6CC",fontSize:"10px"})(" [rate: " + rating + " ]"),
+                                $span({},{color:"#66C",fontSize:"10px"})(" [published: " + entry.published.$t + " ]")
+                              ),
+                              $div({},{textAlign:"center"})(make_thumbs(entry))));
                      });
-  $add(div,$div({},{height:"500px"})());
+  $add(body,$p({},{height:"500px"})());
   current = $(body).children("div").get(0);
   set_current(current);
 
