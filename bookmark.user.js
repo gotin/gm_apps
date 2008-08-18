@@ -4,7 +4,7 @@
 // @require        http://jqueryjs.googlecode.com/files/jquery-1.2.6.js
 // @require        http://github.com/gotin/chain/tree/master/chain.js?raw=true
 // @require        http://github.com/gotin/gm_utils/tree/master/util2.js?raw=true
-// @description    simple sample of youtube api
+// @description    bookmark
 // @include        *
 
 if(unsafeWindow.parent == unsafeWindow){
