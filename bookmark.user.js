@@ -48,10 +48,21 @@ function show_current_page_markers(){
       });
 }
 
+var spans = [];
 function show_markers(markers){
+  hide_markers();
   markers.forEach(function(marker){
                     show_marker(marker);
                   });
+}
+
+function hide_markers(){
+  for(var span=null;span=spans.shift();){
+    for(var c;c=span.firstChild;){
+      span.parentNode.insertBefore(c, span);
+    }
+    $rm(span);
+  }
 }
 
 function show_marker(marker){
@@ -61,6 +72,7 @@ function show_marker(marker){
     range.setEnd($X(marker.endContainerPath)[0],marker.endOffset);
     var span = mark_area();
     range.surroundContents(span);
+    spans.push(span);
   }catch(e){
     console.log(e);
   }
