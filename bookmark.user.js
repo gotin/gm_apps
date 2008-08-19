@@ -10,10 +10,18 @@
 if(unsafeWindow.parent == unsafeWindow){
   Keybind.add("C-b", function(){entry('');});
   Keybind.add("C-v", show_current_page_markers);
+  Keybind.add("C-escape", hide_markers);
 }
 
 const COLOR='pink';
+var bodyClone = null;
+var view_status = false;
+
 function entry(comment){
+  if(view_status){
+    alert("Sorry, bookmarking is disable in mark view mode.");
+    return;
+  }
   var url = document.location.href;
   var markers = get_markers();
   var bookmarks = load_bookmarks();
@@ -41,28 +49,30 @@ function entry(comment){
 }
 
 function show_current_page_markers(){
+  hide_markers();
   get_current_page_bookmarks()
     .forEach(
       function(bookmark){
         show_markers(bookmark.markers);
       });
+  view_status = true;
+
 }
 
-var spans = [];
+//var spans = [];
 function show_markers(markers){
-  hide_markers();
   markers.forEach(function(marker){
                     show_marker(marker);
                   });
 }
 
 function hide_markers(){
-  for(var span=null;span=spans.shift();){
-    for(var c;c=span.firstChild;){
-      span.parentNode.insertBefore(c, span);
-    }
-    $rm(span);
+  if(bodyClone){
+    $rm_content(document.body);
+    $mv_content(bodyClone, document.body);
   }
+  bodyClone = document.body.cloneNode(true);
+  view_status = false;
 }
 
 function show_marker(marker){
@@ -70,15 +80,60 @@ function show_marker(marker){
   try{
     range.setStart($X(marker.startContainerPath)[0],marker.startOffset);
     range.setEnd($X(marker.endContainerPath)[0],marker.endOffset);
-    var span = mark_area();
+    var span = $span()();
     range.surroundContents(span);
-    spans.push(span);
+    setColor(span,COLOR);
+    var last = span.childNodes.length-1;
+    for(var i=0,c;c=span.firstChild;i++){
+      console.log(i+"/"+last);
+      if(i==0 && marker.startOffset > 0 &&
+         c.nodeName == span.previousSibling.nodeName){
+        if(c.nodeType==3){
+          var tmp = $span()(c);
+          setColor(tmp, COLOR);
+          span.parentNode.insertBefore(tmp, span);
+        } else {
+          var tmp = $span()();
+          $mv_content(c, tmp);
+          $rm(c);
+          setColor(tmp, COLOR);
+          span.previousSibling.appendChild(tmp);
+        }
+      } else if(i==last &&
+                 c.nodeName == span.nextSibling.nodeName){
+         var next = span.nextSibling;
+        if(c.nodeType==3){
+          var tmp = $span()(c);
+          setColor(tmp, COLOR);
+          span.parentNode.insertBefore(tmp, next);
+          console.log("last text");
+        } else {
+          var tmp = $span()();
+          $mv_content(c, tmp);
+          $rm(c);
+          setColor(tmp, COLOR);
+          next.insertBefore(tmp, next.firstChild);
+          console.log("last node");
+        }
+      } else {
+        span.parentNode.insertBefore(c, span);
+      }
+    }
   }catch(e){
     console.log(e);
+    console.log(uneval(marker));
   }
-  function mark_area(){
-    return $span({},{backgroundColor:COLOR})();
+}
+
+function setColor(node, color){
+  if(node.nodeType==1){
+    node.style.backgroundColor = color;
+    var children = node.childNodes;
+    for(var i=0,l=children.length;i<l;i++){
+      setColor(children[i], color);
+    }
   }
+
 }
 
 function get_current_page_bookmarks(){
@@ -95,6 +150,7 @@ function get_current_page_bookmarks(){
 function load_bookmarks(){
   var bookmarks = eval(GM_getValue("bookmarks","({list:[],url_index:{},ymd_index:{}})"));
   return bookmarks;
+  //return ({list:[],url_index:{},ymd_index:{}});
 }
 
 function save_bookmarks(bookmarks){
