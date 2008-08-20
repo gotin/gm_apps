@@ -76,62 +76,100 @@ function hide_markers(){
 }
 
 function show_marker(marker){
-  var range =document.createRange();
+  var sc = $X(marker.startContainerPath)[0];
+  var so = marker.startOffset;
+  var ec = $X(marker.endContainerPath)[0];
+  var eo = marker.endOffset;
+  var ecParent = ec.parentNode;
+
+  var walker =
+    document.createTreeWalker(document.body,
+                              -1,
+                              { acceptNode: function(node) { return 1; } },
+                              false);
+  walker.currentNode = sc;
   try{
-    range.setStart($X(marker.startContainerPath)[0],marker.startOffset);
-    range.setEnd($X(marker.endContainerPath)[0],marker.endOffset);
-    var span = $span()();
-    range.surroundContents(span);
-    setColor(span,COLOR);
-    var last = span.childNodes.length-1;
-    for(var i=0,c;c=span.firstChild;i++){
-      console.log(i+"/"+last);
-      if(i==0 && marker.startOffset > 0 &&
-         c.nodeName == span.previousSibling.nodeName){
-        if(c.nodeType==3){
-          var tmp = $span()(c);
-          setColor(tmp, COLOR);
-          span.parentNode.insertBefore(tmp, span);
-        } else {
-          var tmp = $span()();
-          $mv_content(c, tmp);
-          $rm(c);
-          setColor(tmp, COLOR);
-          span.previousSibling.appendChild(tmp);
-        }
-      } else if(i==last &&
-                 c.nodeName == span.nextSibling.nodeName){
-         var next = span.nextSibling;
-        if(c.nodeType==3){
-          var tmp = $span()(c);
-          setColor(tmp, COLOR);
-          span.parentNode.insertBefore(tmp, next);
-          console.log("last text");
-        } else {
-          var tmp = $span()();
-          $mv_content(c, tmp);
-          $rm(c);
-          setColor(tmp, COLOR);
-          next.insertBefore(tmp, next.firstChild);
-          console.log("last node");
-        }
-      } else {
-        span.parentNode.insertBefore(c, span);
+    setColor(walker);
+  }catch(e){
+  //  console.log(e);
+  }
+
+  function setColor(walker){
+    var node=walker.currentNode;
+    if(!node)return; // finish;
+    if(node==sc && sc == ec){
+      if(node.nodeType==3){
+        var clone=node.cloneNode(true);
+        var clone2=node.cloneNode(true);
+        var text = node.textContent;
+        var t1 = text.substring(0, so);
+        var t2 = text.substring(so, eo);
+        var t3 = text.substring(eo);
+        node.textContent = t1;
+        clone.textContent = t2;
+        clone2.textContent = t3;
+        node.parentNode.insertBefore(clone2, node.nextSibling);
+        node.parentNode.insertBefore(clone, clone2);
+        wrapColoredSpan(clone);
+      }
+      return; //finish
+    } else if(node==sc){
+      if(node.nodeType==3){
+        var clone=node.cloneNode(true);
+        var text = node.textContent;
+        var t1 = text.substring(0, so);
+        var t2 = text.substring(so);
+        node.textContent = t1;
+        clone.textContent = t2;
+        node.parentNode.insertBefore(clone, node.nextSibling);
+        wrapColoredSpan(clone);
+      }
+    } else if(node == ec){
+      if(node.nodeType == 3){
+        var clone=node.cloneNode(true);
+        var text = node.textContent;
+        var t1 = text.substring(0, eo);
+        var t2 = text.substring(eo);
+        node.textContent = t1;
+        clone.textContent = t2;
+        node.parentNode.insertBefore(clone, node.nextSibling);
+        wrapColoredSpan(node);
+      }
+      return; // finish
+    } else {
+      if(node.nodeType==1 && (!node.firstChild ||!isNodeWrapper(node, ec, eo) )){
+        node.style.backgroundColor = COLOR;
+      } else if(node.nodeType==3 && isNodeWrapper(node.parentNode, ec, eo)){
+        node = wrapColoredSpan(node);
       }
     }
-  }catch(e){
-    console.log(e);
-    console.log(uneval(marker));
-  }
-}
-
-function setColor(node, color){
-  if(node.nodeType==1){
-    node.style.backgroundColor = color;
-    var children = node.childNodes;
-    for(var i=0,l=children.length;i<l;i++){
-      setColor(children[i], color);
+    if(node.nodeType==1){
+      var children = node.childNodes;
+      for(var i=0,l=children.length;i<l;i++){
+        var child = children[i];
+        setColor(child, walker);
+      }
     }
+    walker.currentNode = node;
+    walker.nextNode();
+    setColor(walker);
+  }
+
+  function wrapColoredSpan(node){
+    var r = document.createRange();
+    r.selectNode(node);
+    var span = $span({},{backgroundColor:COLOR})();
+    r.surroundContents(span);
+    r.detach();
+    return span;
+  }
+
+  function isNodeWrapper(wrapper , node, offset){
+    var range = document.createRange();
+    range.selectNode(wrapper);
+    var ret = range.isPointInRange(node, offset);
+    range.detach();
+    return ret;
   }
 
 }
