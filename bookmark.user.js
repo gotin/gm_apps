@@ -7,13 +7,16 @@
 // @description    bookmark
 // @include        *
 
+const COLOR='pink';
+const COLORED_CLASS="__colored__";
+
 if(unsafeWindow.parent == unsafeWindow){
+  GM_addStyle("." + COLORED_CLASS + " {background-color:" + COLOR + ";}");
   Keybind.add("C-b", function(){entry('');});
   Keybind.add("C-v", show_current_page_markers);
   Keybind.add("C-escape", hide_markers);
 }
 
-const COLOR='pink';
 var bodyClone = null;
 var view_status = false;
 
@@ -45,24 +48,70 @@ function entry(comment){
   var date_index = month_index[now_date] || (month_index[now_date]=[]);
   date_index[index] = true;
   save_bookmarks(bookmarks);
-
 }
 
 function show_current_page_markers(){
+  var targets = {};
   hide_markers();
   get_current_page_bookmarks()
     .forEach(
       function(bookmark){
-        show_markers(bookmark.markers);
+        show_markers(bookmark.markers, targets);
       });
+
+  for(var path in targets){
+    colorText(targets[path]);
+  }
+
+
   view_status = true;
 
+  function colorText(nodeInfo){
+    var node =nodeInfo.node;
+    var origE = node.textContent.length;
+    var s = nodeInfo.s;
+    var e = nodeInfo.e;
+    if(0 < s && e < origE ){
+      var clone=node.cloneNode(true);
+      var clone2=node.cloneNode(true);
+      var text = node.textContent;
+      var t1 = text.substring(0, s);
+      var t2 = text.substring(s, e);
+      var t3 = text.substring(e);
+      node.textContent = t1;
+      clone.textContent = t2;
+      clone2.textContent = t3;
+      node.parentNode.insertBefore(clone2, node.nextSibling);
+      node.parentNode.insertBefore(clone, clone2);
+      wrapColoredSpan(clone);
+    } else if(0 < s){
+      var clone=node.cloneNode(true);
+      var text = node.textContent;
+      var t1 = text.substring(0, s);
+      var t2 = text.substring(s);
+      node.textContent = t1;
+      clone.textContent = t2;
+      node.parentNode.insertBefore(clone, node.nextSibling);
+      wrapColoredSpan(clone);
+    } else if(e < origE){
+      var clone=node.cloneNode(true);
+      var text = node.textContent;
+      var t1 = text.substring(0, e);
+      var t2 = text.substring(e);
+      node.textContent = t1;
+      clone.textContent = t2;
+      node.parentNode.insertBefore(clone, node.nextSibling);
+      wrapColoredSpan(node);
+    } else {
+      wrapColoredSpan(node);
+    }
+  }
 }
 
 //var spans = [];
-function show_markers(markers){
+function show_markers(markers, targets){
   markers.forEach(function(marker){
-                    show_marker(marker);
+                    show_marker(marker, targets);
                   });
 }
 
@@ -72,107 +121,108 @@ function hide_markers(){
     $mv_content(bodyClone, document.body);
   }
   bodyClone = document.body.cloneNode(true);
+  //bodyClone = make_linked_clone(document.body);
   view_status = false;
 }
 
-function show_marker(marker){
+function make_linked_clone(node){
+  var clone = node.cloneNode(false);
+  var parentClones =node.parentNode.__clones__;
+  var cloneParent = parentClones && parentClones[0];
+  if(cloneParent) cloneParent.appendChild(clone);
+  clone.__orig__ = node;
+  node.__clones__ = [clone];
+  if(node.nodeType==1){
+    var children = node.childNodes;
+    for(var i=0,l=children.length;i<l;i++){
+      make_linked_clone(children[i]);
+    }
+  }
+}
+
+function show_marker(marker, targets){
   var sc = $X(marker.startContainerPath)[0];
   var so = marker.startOffset;
   var ec = $X(marker.endContainerPath)[0];
   var eo = marker.endOffset;
   var ecParent = ec.parentNode;
-
-  var walker =
-    document.createTreeWalker(document.body,
-                              -1,
-                              { acceptNode: function(node) { return 1; } },
-                              false);
-  walker.currentNode = sc;
   try{
-    setColor(walker);
+    setColor(sc);
   }catch(e){
   //  console.log(e);
   }
 
-  function setColor(walker){
-    var node=walker.currentNode;
+  function setColor(node){
     if(!node)return; // finish;
     if(node==sc && sc == ec){
       if(node.nodeType==3){
-        var clone=node.cloneNode(true);
-        var clone2=node.cloneNode(true);
-        var text = node.textContent;
-        var t1 = text.substring(0, so);
-        var t2 = text.substring(so, eo);
-        var t3 = text.substring(eo);
-        node.textContent = t1;
-        clone.textContent = t2;
-        clone2.textContent = t3;
-        node.parentNode.insertBefore(clone2, node.nextSibling);
-        node.parentNode.insertBefore(clone, clone2);
-        wrapColoredSpan(clone);
+        addTarget(node, so, eo);
       }
       return; //finish
     } else if(node==sc){
       if(node.nodeType==3){
-        var clone=node.cloneNode(true);
-        var text = node.textContent;
-        var t1 = text.substring(0, so);
-        var t2 = text.substring(so);
-        node.textContent = t1;
-        clone.textContent = t2;
-        node.parentNode.insertBefore(clone, node.nextSibling);
-        wrapColoredSpan(clone);
+        addTarget(node, so);
       }
     } else if(node == ec){
       if(node.nodeType == 3){
-        var clone=node.cloneNode(true);
-        var text = node.textContent;
-        var t1 = text.substring(0, eo);
-        var t2 = text.substring(eo);
-        node.textContent = t1;
-        clone.textContent = t2;
-        node.parentNode.insertBefore(clone, node.nextSibling);
-        wrapColoredSpan(node);
+        addTarget(node, 0, eo);
       }
       return; // finish
     } else {
-      if(node.nodeType==1 && (!node.firstChild ||!isNodeWrapper(node, ec, eo) )){
-        node.style.backgroundColor = COLOR;
-      } else if(node.nodeType==3 && isNodeWrapper(node.parentNode, ec, eo)){
-        node = wrapColoredSpan(node);
+      if(node.nodeType==1 && !node.firstChild ){
+        $(node).addClass(COLORED_CLASS);
+      } else if(node.nodeType==3 && !$(node.parentNode).hasClass(COLORED_CLASS)){
+        addTarget(node);
       }
     }
-    if(node.nodeType==1){
-      var children = node.childNodes;
-      for(var i=0,l=children.length;i<l;i++){
-        var child = children[i];
-        setColor(child, walker);
-      }
+    doNext(node);
+  }
+
+  function doNext(node, dontGoChild){
+    if(!node) return;
+    if(!dontGoChild && node.firstChild){
+      setColor(node.firstChild);
+    } else if(node.nextSibling){
+      setColor(node.nextSibling);
+    } else {
+      doNext(node.parentNode, true);
     }
-    walker.currentNode = node;
-    walker.nextNode();
-    setColor(walker);
   }
 
-  function wrapColoredSpan(node){
-    var r = document.createRange();
-    r.selectNode(node);
-    var span = $span({},{backgroundColor:COLOR})();
-    r.surroundContents(span);
-    r.detach();
-    return span;
-  }
 
-  function isNodeWrapper(wrapper , node, offset){
-    var range = document.createRange();
-    range.selectNode(wrapper);
-    var ret = range.isPointInRange(node, offset);
-    range.detach();
-    return ret;
+  function addTarget(node, s, e){
+    var path = getXPath(node);
+    if(s == undefined) s = 0;
+    if(e == undefined) e = node.textContent.length;
+    if(!targets[path]){
+      targets[path] = {node:node, text:node.textContent};
+    }
+    if(!("s" in targets[path]) ||targets[path].s > s){
+      targets[path].s = s;
+    }
+    if(!("e" in targets[path]) ||targets[path].e < e){
+      targets[path].e = e;
+    }
   }
-
 }
+
+function wrapColoredSpan(node){
+  var r = document.createRange();
+  r.selectNode(node);
+  var span = $span({"className":COLORED_CLASS})();
+  r.surroundContents(span);
+  r.detach();
+  return span;
+}
+
+function isNodeWrapper(wrapper , node, offset){
+  var range = document.createRange();
+  range.selectNode(wrapper);
+  var ret = range.isPointInRange(node, offset);
+  range.detach();
+  return ret;
+}
+
 
 function get_current_page_bookmarks(){
   var bookmarks = load_bookmarks();
@@ -188,7 +238,7 @@ function get_current_page_bookmarks(){
 function load_bookmarks(){
   var bookmarks = eval(GM_getValue("bookmarks","({list:[],url_index:{},ymd_index:{}})"));
   return bookmarks;
-  //return ({list:[],url_index:{},ymd_index:{}});
+//  return ({list:[],url_index:{},ymd_index:{}});
 }
 
 function save_bookmarks(bookmarks){
