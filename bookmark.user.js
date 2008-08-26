@@ -11,14 +11,28 @@ const COLOR='pink';
 const COLORED_CLASS="__colored__";
 
 if(unsafeWindow.parent == unsafeWindow){
-  GM_addStyle("." + COLORED_CLASS + " {background-color:" + COLOR + ";}");
+//  GM_addStyle("." + COLORED_CLASS + " {background-color:" + COLOR + ";}");
   Keybind.add("C-b", function(){entry('');});
   Keybind.add("C-v", show_current_page_markers);
+  Keybind.add("C-l", show_bookmarks);
   Keybind.add("C-escape", hide_markers);
 }
 
 var bodyClone = null;
 var view_status = false;
+
+function show_bookmarks(){
+  var div = $div({},{position:"fixed",bottom:"0", left:"0",backgroundColor:"#FFF",border:"1px dashed blue", margin:"0", padding:"2px"})();
+  load_bookmarks()
+    .list
+    .forEach(
+      function(bookmark){
+        console.log(uneval(bookmark));
+        $add(div,
+             $p({},{margin:"0", padding:"2px"})($a({href:bookmark.url,textContent:bookmark.title},{color:"blue",textDecoration:"underline",fontSize:"10px",fontFamily:"verdana"})()));
+      });
+  $add(document.body, div);
+}
 
 function entry(comment){
   if(view_status){
@@ -34,6 +48,7 @@ function entry(comment){
   var now_time = now.getTime();
   list.push({
               url:url,
+              title:document.title,
               markers:markers,
               created_at:now_time,
               comment:comment
@@ -170,7 +185,19 @@ function show_marker(marker, targets){
       return; // finish
     } else {
       if(node.nodeType==1 && !node.firstChild ){
-        $(node).addClass(COLORED_CLASS);
+        if(node.tagName=="IMG"){
+          try{
+          var pos = $position(node);
+          var width = $(node).width();
+          var height = $(node).height();
+            $add(document.body, $div({},{position:"absolute", left:pos[0]+"px", top:pos[1]+"px", backgroundColor:COLOR, opacity:"0.5", zIndex:999999,width:width+"px",height:height+"px"})());
+          }catch(e){
+            console.log(e);
+          }
+        } else {
+          $(node).css("background-color",COLOR);
+          $(node).addClass(COLORED_CLASS);
+        }
       } else if(node.nodeType==3 && !$(node.parentNode).hasClass(COLORED_CLASS)){
         addTarget(node);
       }
@@ -209,7 +236,7 @@ function show_marker(marker, targets){
 function wrapColoredSpan(node){
   var r = document.createRange();
   r.selectNode(node);
-  var span = $span({"className":COLORED_CLASS})();
+  var span = $span({className:COLORED_CLASS},{backgroundColor:COLOR})();
   r.surroundContents(span);
   r.detach();
   return span;
