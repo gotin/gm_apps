@@ -21,18 +21,32 @@ if(unsafeWindow.parent == unsafeWindow){
 var bodyClone = null;
 var view_status = false;
 
+var bookmarkList = null;
+
 function show_bookmarks(){
-  var div = $div({},{position:"fixed",bottom:"0", left:"0",backgroundColor:"#FFF",border:"1px dashed blue", margin:"0", padding:"2px"})();
+  if(bookmarkList){
+    $(bookmarkList).remove();
+    bookmarkList = null;
+    return;
+  }
+  bookmarkList = $div({},{position:"fixed",zIndex:"999999", bottom:"0", left:"0",backgroundColor:"#FFF",border:"1px dashed blue", margin:"0", padding:"2px"})();
   load_bookmarks()
     .list
     .forEach(
       function(bookmark){
         console.log(uneval(bookmark));
-        $add(div,
-             $p({},{margin:"0", padding:"2px"})($a({href:bookmark.url,textContent:bookmark.title},{color:"blue",textDecoration:"underline",fontSize:"10px",fontFamily:"verdana"})()));
+        var pStyle = {margin:"0", padding:"2px"};
+        if(document.location.href == bookmark.url){
+          pStyle.backgroundColor = "pink";
+        }
+        var p =$p({},pStyle);
+        $add(bookmarkList,
+             p($a({href:bookmark.url,textContent:bookmark.title},{color:"blue",textDecoration:"underline",fontSize:"10px",fontFamily:"verdana"})()));
       });
-  $add(document.body, div);
+  $add(document.body, bookmarkList);
 }
+
+
 
 function entry(comment){
   if(view_status){
